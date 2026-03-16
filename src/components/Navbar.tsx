@@ -12,7 +12,7 @@ const navLinks = [
 
 const Navbar = () => {
   const { totalItems, setIsCartOpen } = useCart();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 

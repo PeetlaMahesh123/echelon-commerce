@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingBag, Search, Menu, X, Heart, User, LogOut } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, LogOut, Shield } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
@@ -12,7 +12,7 @@ const navLinks = [
 
 const Navbar = () => {
   const { totalItems, setIsCartOpen } = useCart();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -63,6 +63,11 @@ const Navbar = () => {
               </span>
             )}
           </button>
+          {user && isAdmin && (
+            <Link to="/admin" className="text-gold hover:text-gold-light transition-colors" title="Admin Dashboard">
+              <Shield size={18} />
+            </Link>
+          )}
           {user ? (
             <button
               onClick={() => signOut()}

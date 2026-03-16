@@ -63,6 +63,11 @@ const Navbar = () => {
               </span>
             )}
           </button>
+          {user && isAdmin && (
+            <Link to="/admin" className="text-gold hover:text-gold-light transition-colors" title="Admin Dashboard">
+              <Shield size={18} />
+            </Link>
+          )}
           {user ? (
             <button
               onClick={() => signOut()}

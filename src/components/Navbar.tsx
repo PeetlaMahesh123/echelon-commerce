@@ -1,24 +1,24 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingBag, Search, Menu, X, Heart } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, LogOut } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navLinks = [
   { label: "Home", path: "/" },
   { label: "Shop", path: "/shop" },
-  { label: "Collections", path: "/shop?category=All" },
 ];
 
 const Navbar = () => {
   const { totalItems, setIsCartOpen } = useCart();
+  const { user, signOut } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <nav className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-8">
-        {/* Mobile menu */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="lg:hidden text-foreground"
@@ -27,12 +27,10 @@ const Navbar = () => {
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* Logo */}
         <Link to="/" className="font-display text-xl tracking-[0.3em] text-gold uppercase">
           Aurum
         </Link>
 
-        {/* Desktop nav */}
         <div className="hidden lg:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
@@ -47,7 +45,6 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-4">
           <Link to="/shop" className="text-muted-foreground hover:text-gold transition-colors">
             <Search size={18} />
@@ -66,10 +63,22 @@ const Navbar = () => {
               </span>
             )}
           </button>
+          {user ? (
+            <button
+              onClick={() => signOut()}
+              className="text-muted-foreground hover:text-gold transition-colors"
+              title="Sign out"
+            >
+              <LogOut size={18} />
+            </button>
+          ) : (
+            <Link to="/auth" className="text-muted-foreground hover:text-gold transition-colors">
+              <User size={18} />
+            </Link>
+          )}
         </div>
       </nav>
 
-      {/* Mobile menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -89,6 +98,15 @@ const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
+              {!user && (
+                <Link
+                  to="/auth"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm tracking-[0.15em] uppercase text-muted-foreground hover:text-gold transition-colors"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </motion.div>
         )}

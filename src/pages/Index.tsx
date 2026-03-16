@@ -3,11 +3,13 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import heroImage from "@/assets/hero-luxury.jpg";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/data/products";
-
-const featured = products.filter((p) => p.isFeatured);
+import { useProducts } from "@/hooks/useProducts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
+  const { data: products, isLoading } = useProducts();
+  const featured = products?.filter((p) => p.is_featured) || [];
+
   return (
     <main>
       {/* Hero */}
@@ -44,7 +46,6 @@ const Index = () => {
         </motion.div>
       </section>
 
-      {/* Divider */}
       <div className="line-gold" />
 
       {/* Featured */}
@@ -64,11 +65,24 @@ const Index = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {featured.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="aspect-[3/4] rounded" />
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            {featured.map((product, i) => (
+              <ProductCard key={product.id} product={product} index={i} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Banner */}

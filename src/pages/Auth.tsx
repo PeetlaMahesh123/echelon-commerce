@@ -297,7 +297,10 @@ const Auth = () => {
         className="w-full max-w-sm px-4"
       >
         <div className="text-center mb-8">
-          <p className="text-xs tracking-[0.3em] uppercase text-gold mb-2">
+          <h2 className="text-2xl font-display text-gradient-royal mb-2 font-bold">
+            RoyalCart
+          </h2>
+          <p className="text-xs tracking-[0.3em] uppercase text-royal-gold mb-2">
             {getModeSubtitle()}
           </p>
           <h1 className="text-3xl font-display text-foreground">
@@ -312,12 +315,12 @@ const Auth = () => {
           </div>
         )}
 
-        <div className="flex gap-1 mb-6 bg-secondary rounded p-1">
+        <div className="flex gap-1 mb-6 bg-secondary rounded p-1 border border-royal-purple/30">
           <button
             onClick={setLoginMode}
             disabled={isLoading}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-colors ${
-              mode === "login" ? "bg-gold text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-all ${
+              mode === "login" ? "gradient-royal text-white shadow-lg" : "text-muted-foreground hover:text-royal-pink"
             }`}
           >
             <User size={14} />
@@ -326,8 +329,8 @@ const Auth = () => {
           <button
             onClick={setSignupMode}
             disabled={isLoading}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-colors ${
-              mode === "signup" ? "bg-gold text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-all ${
+              mode === "signup" ? "gradient-royal text-white shadow-lg" : "text-muted-foreground hover:text-royal-pink"
             }`}
           >
             <User size={14} />
@@ -336,8 +339,8 @@ const Auth = () => {
           <button
             onClick={setAdminMode}
             disabled={isLoading}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-colors ${
-              mode === "admin" ? "bg-gold text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-all ${
+              mode === "admin" ? "gradient-royal text-white shadow-lg" : "text-muted-foreground hover:text-royal-pink"
             }`}
           >
             <Shield size={14} />
@@ -379,13 +382,13 @@ const Auth = () => {
               required
               minLength={6}
               disabled={isLoading}
-              className="w-full bg-secondary border border-border rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-gold transition-colors disabled:opacity-50"
+              className="w-full bg-secondary border border-royal-purple/30 rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-royal-pink focus:ring-1 focus:ring-royal-pink transition-all disabled:opacity-50"
             />
           </div>
 
           {mode === "admin" && (
-            <div className="bg-gold/10 border border-gold/30 rounded p-3">
-              <p className="text-xs text-gold">
+            <div className="bg-royal-purple/10 border border-royal-purple/30 rounded p-3">
+              <p className="text-xs text-royal-pink">
                 <Shield size={14} className="inline mr-1" />
                 Admin accounts have full access to manage products, orders, and customers.
               </p>
@@ -395,7 +398,7 @@ const Auth = () => {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full gradient-gold text-primary-foreground font-body text-xs tracking-[0.15em] uppercase h-12"
+            className="w-full gradient-royal text-white font-body text-xs tracking-[0.15em] uppercase h-12 hover:shadow-lg hover:shadow-royal-purple/30 transition-all"
           >
             {isLoading ? (
               <>
@@ -413,7 +416,7 @@ const Auth = () => {
             <button
               onClick={resendConfirmation}
               disabled={isLoading}
-              className="text-xs text-muted-foreground hover:text-gold transition-colors"
+              className="text-xs text-muted-foreground hover:text-royal-pink transition-colors"
             >
               Didn't receive verification email? Resend
             </button>

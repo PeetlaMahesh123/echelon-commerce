@@ -40,8 +40,8 @@ const Navbar = () => {
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <Link to="/" className="font-display text-xl tracking-[0.3em] text-gold uppercase">
-          Aurum
+        <Link to="/" className="font-display text-xl tracking-[0.2em] bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent uppercase font-bold hover:scale-105 transition-transform">
+          RoyalCart
         </Link>
 
         <div className="hidden lg:flex items-center gap-8">

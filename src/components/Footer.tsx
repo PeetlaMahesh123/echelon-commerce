@@ -5,9 +5,9 @@ const Footer = () => (
     <div className="container mx-auto px-4 lg:px-8 py-16">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
         <div>
-          <h3 className="font-display text-lg tracking-[0.3em] text-gold uppercase mb-4">Aurum</h3>
+          <h3 className="font-display text-lg tracking-[0.2em] bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent uppercase mb-4 font-bold">RoyalCart</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Curated luxury for the discerning individual. Timeless elegance meets modern sophistication.
+            Discover premium products with royal treatment. Quality shopping for the modern lifestyle.
           </p>
         </div>
         {[
@@ -31,7 +31,7 @@ const Footer = () => (
       </div>
       <div className="line-gold mt-12 mb-6" />
       <p className="text-[10px] text-muted-foreground text-center tracking-[0.1em]">
-        © 2026 AURUM. All rights reserved.
+        © 2026 RoyalCart. All rights reserved.
       </p>
     </div>
   </footer>

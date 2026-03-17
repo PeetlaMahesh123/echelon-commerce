@@ -1,5 +1,5 @@
 import { useState, memo, useCallback, useEffect } from "react";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -19,22 +19,17 @@ const Auth = () => {
   const { signIn, signUp, refreshAdminStatus } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
   
-  // Check for email confirmation
+  // Check for email confirmation on mount
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user?.email_confirmed_at) {
         setEmailConfirmed(true);
-        toast({ 
-          title: "Email Verified!", 
-          description: "Your email has been confirmed. You can now sign in." 
-        });
       }
     };
     checkSession();
-  }, [toast]);
+  }, []);
 
   const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value), []);
   const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value), []);
@@ -42,10 +37,6 @@ const Auth = () => {
   const setLoginMode = useCallback(() => setMode("login"), []);
   const setSignupMode = useCallback(() => setMode("signup"), []);
   const setAdminMode = useCallback(() => setMode("admin"), []);
-
-  const resetLoading = useCallback(() => {
-    setIsLoading(false);
-  }, []);
 
   const handleAdminSignup = async () => {
     if (!email || !password || !name) {
@@ -69,7 +60,7 @@ const Auth = () => {
       }
 
       if (signUpData.user) {
-        // Assign admin role
+        // Try to assign admin role
         try {
           await supabase.rpc('assign_admin_role', { user_uuid: signUpData.user.id });
         } catch {
@@ -101,7 +92,7 @@ const Auth = () => {
         if (success) {
           setMode("login");
         }
-        resetLoading();
+        setIsLoading(false);
         return;
       }
 
@@ -131,36 +122,32 @@ const Auth = () => {
           setMode("login");
         }
       } else {
-        // Login mode
-        try {
-          const { error } = await signIn(email, password);
+        // Login mode - use direct Supabase call for better error handling
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-          if (error) {
-            const errorMsg = error.message || "";
-            if (errorMsg.includes("Invalid login credentials") || errorMsg.includes("404")) {
-              toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
-            } else if (errorMsg.includes("Email not confirmed")) {
-              toast({ 
-                title: "Email Not Verified", 
-                description: "Please check your email and click the verification link before signing in.", 
-                variant: "destructive" 
-              });
-            } else {
-              toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
-            }
+        if (error) {
+          const errorMsg = error.message || "";
+          if (errorMsg.includes("Invalid login credentials")) {
+            toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
+          } else if (errorMsg.includes("Email not confirmed")) {
+            toast({ 
+              title: "Email Not Verified", 
+              description: "Please check your email and click the verification link before signing in.", 
+              variant: "destructive" 
+            });
           } else {
-            toast({ title: "Success!", description: "You are now signed in." });
-            navigate("/");
-            return;
+            toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
           }
-        } catch (signInError: any) {
-          toast({ title: "Error", description: signInError?.message || "Sign in failed. Please try again.", variant: "destructive" });
+        } else if (data.user) {
+          toast({ title: "Success!", description: "You are now signed in." });
+          navigate("/");
+          return;
         }
       }
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
-      resetLoading();
+      setIsLoading(false);
     }
   };
 
@@ -188,23 +175,27 @@ const Auth = () => {
         } else {
           toast({ title: "Error", description: signInError.message, variant: "destructive" });
         }
-        resetLoading();
+        setIsLoading(false);
         return;
       }
 
-      // Assign admin role
-      try {
-        await supabase.rpc('assign_admin_role', { user_uuid: signInData.user.id });
-      } catch {
-        await supabase.from('user_roles').upsert({ user_id: signInData.user.id, role: 'admin' }, { onConflict: 'user_id,role' });
-      }
+      if (signInData.user) {
+        // Assign admin role
+        try {
+          await supabase.rpc('assign_admin_role', { user_uuid: signInData.user.id });
+        } catch {
+          await supabase.from('user_roles').upsert({ user_id: signInData.user.id, role: 'admin' }, { onConflict: 'user_id,role' });
+        }
 
-      toast({ title: "Success!", description: "Admin role assigned. Redirecting to admin panel..." });
-      await refreshAdminStatus();
-      navigate("/admin");
+        toast({ title: "Success!", description: "Admin role assigned. Redirecting to admin panel..." });
+        await refreshAdminStatus();
+        navigate("/admin");
+        return;
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
-      resetLoading();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -229,7 +220,7 @@ const Auth = () => {
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to resend email", variant: "destructive" });
     } finally {
-      resetLoading();
+      setIsLoading(false);
     }
   };
 

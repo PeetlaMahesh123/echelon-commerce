@@ -22,6 +22,10 @@ const Checkout = () => {
   const handleCheckout = async () => {
     setLoading(true);
     try {
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout`, {
         method: "POST",
         headers: {
@@ -36,7 +40,10 @@ const Checkout = () => {
           })),
           origin_url: window.location.origin,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -46,15 +53,24 @@ const Checkout = () => {
       const data = await response.json();
       if (data?.url) {
         window.location.href = data.url;
+        return;
       } else {
         throw new Error("No checkout URL returned");
       }
     } catch (err: any) {
-      toast({
-        title: "Checkout failed",
-        description: err.message || "Something went wrong",
-        variant: "destructive",
-      });
+      if (err.name === 'AbortError') {
+        toast({
+          title: "Checkout Timeout",
+          description: "The checkout service is taking too long. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Checkout failed",
+          description: err.message || "Something went wrong",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

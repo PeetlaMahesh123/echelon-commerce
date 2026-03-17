@@ -82,8 +82,14 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    console.log("Form submitted, mode:", mode, "isLoading:", isLoading);
     
+    if (isLoading) {
+      console.log("Already loading, returning");
+      return;
+    }
+    
+    console.log("Setting loading to true");
     setIsLoading(true);
 
     try {

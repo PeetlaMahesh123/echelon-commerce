@@ -30,13 +30,12 @@ const Auth = () => {
   const isSubmitLoading = loading === "submit";
   const isAdminLoading = loading === "admin";
 
-  const handleAdminSignup = async () => {
+  const handleAdminSignup = async (): Promise<boolean> => {
     if (!email || !password || !name) {
       toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
-      return;
+      return false;
     }
 
-    setLoading("submit");
     try {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -49,10 +48,11 @@ const Auth = () => {
 
       if (signUpError) {
         toast({ title: "Error", description: signUpError.message, variant: "destructive" });
-        return;
+        return false;
       }
 
       if (signUpData.user) {
+        // Try RPC first
         const { error: rpcError } = await supabase.rpc('assign_admin_role', {
           user_uuid: signUpData.user.id
         });
@@ -62,10 +62,10 @@ const Auth = () => {
             title: "Admin Account Created!", 
             description: "Please check your email to confirm your account, then sign in." 
           });
-          setMode("login");
-          return;
+          return true;
         }
 
+        // Fallback to direct insert
         const { error: insertError } = await supabase
           .from('user_roles')
           .insert({ user_id: signUpData.user.id, role: 'admin' });
@@ -75,20 +75,20 @@ const Auth = () => {
             title: "Admin Account Created!", 
             description: "Please check your email to confirm your account, then sign in." 
           });
-          setMode("login");
+          return true;
         } else {
           toast({ 
             title: "Account Created - Setup Required", 
             description: "Your account was created. Run the database setup to enable admin features.", 
             variant: "destructive" 
           });
-          setMode("login");
+          return true;
         }
       }
+      return false;
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading("idle");
+      toast({ title: "Error", description: error.message || "Failed to create account", variant: "destructive" });
+      return false;
     }
   };
 
@@ -96,27 +96,36 @@ const Auth = () => {
     e.preventDefault();
     setLoading("submit");
 
-    if (mode === "admin") {
-      await handleAdminSignup();
-      setLoading("idle");
-      return;
-    }
-
     try {
+      if (mode === "admin") {
+        const success = await handleAdminSignup();
+        if (success) {
+          setMode("login");
+        }
+        return;
+      }
+
       const { error } = mode === "login"
         ? await signIn(email, password)
         : await signUp(email, password, name);
 
       if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+        if (error.message?.includes("Invalid login credentials")) {
+          toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
+        } else if (error.message?.includes("User already registered")) {
+          toast({ title: "Account Exists", description: "An account with this email already exists. Please sign in.", variant: "destructive" });
+        } else {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        }
       } else if (mode === "login") {
+        toast({ title: "Success!", description: "You are now signed in." });
         navigate("/");
       } else {
-        toast({ title: "Account created", description: "Check your email to confirm your account." });
+        toast({ title: "Account created", description: "Check your email to confirm your account, then sign in." });
         setMode("login");
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
       setLoading("idle");
     }
@@ -133,7 +142,11 @@ const Auth = () => {
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       
       if (signInError) {
-        toast({ title: "Error", description: signInError.message, variant: "destructive" });
+        if (signInError.message?.includes("Invalid login credentials")) {
+          toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
+        } else {
+          toast({ title: "Error", description: signInError.message, variant: "destructive" });
+        }
         return;
       }
 
@@ -145,7 +158,6 @@ const Auth = () => {
         toast({ title: "Success!", description: "Admin role assigned. Redirecting to admin panel..." });
         await refreshAdminStatus();
         navigate("/admin");
-        setLoading("idle");
         return;
       }
 
@@ -165,7 +177,7 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
       setLoading("idle");
     }

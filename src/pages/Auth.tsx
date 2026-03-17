@@ -1,64 +1,31 @@
-<<<<<<< HEAD
 import { useState, memo, useCallback } from "react";
-=======
-<<<<<<< HEAD
-import { useState, useEffect } from "react";
-=======
-import { useState, memo, useCallback } from "react";
->>>>>>> 9f673a3 (Initial commit with all products and admin features)
->>>>>>> bb4290a (Setup GitHub Pages deployment)
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-import { Shield } from "lucide-react";
-=======
->>>>>>> bb4290a (Setup GitHub Pages deployment)
 import { Loader2, Shield, User, Settings } from "lucide-react";
 
 type AuthMode = "login" | "signup" | "admin";
 type LoadingState = "idle" | "submit" | "admin";
-<<<<<<< HEAD
-=======
->>>>>>> 9f673a3 (Initial commit with all products and admin features)
->>>>>>> bb4290a (Setup GitHub Pages deployment)
 
 const Auth = () => {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-<<<<<<< HEAD
   const [loading, setLoading] = useState<LoadingState>("idle");
   const { signIn, signUp, refreshAdminStatus } = useAuth();
-=======
-<<<<<<< HEAD
-  const [loading, setLoading] = useState(false);
-  const [hasAdmin, setHasAdmin] = useState<boolean | null>(null);
-  const [registerAsAdmin, setRegisterAsAdmin] = useState(false);
-  const { signIn, signUp, user } = useAuth();
-=======
-  const [loading, setLoading] = useState<LoadingState>("idle");
-  const { signIn, signUp, refreshAdminStatus } = useAuth();
->>>>>>> 9f673a3 (Initial commit with all products and admin features)
->>>>>>> bb4290a (Setup GitHub Pages deployment)
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Memoized handlers to prevent unnecessary re-renders
   const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value), []);
   const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value), []);
   const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value), []);
   const setLoginMode = useCallback(() => setMode("login"), []);
   const setSignupMode = useCallback(() => setMode("signup"), []);
   const setAdminMode = useCallback(() => setMode("admin"), []);
-<<<<<<< HEAD
-=======
 
   const isSubmitLoading = loading === "submit";
   const isAdminLoading = loading === "admin";
@@ -124,102 +91,6 @@ const Auth = () => {
       setLoading("idle");
     }
   };
->>>>>>> bb4290a (Setup GitHub Pages deployment)
-
-  const isSubmitLoading = loading === "submit";
-  const isAdminLoading = loading === "admin";
-
-  const handleAdminSignup = async () => {
-    if (!email || !password || !name) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
-      return;
-    }
-<<<<<<< HEAD
-
-    setLoading("submit");
-=======
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading("submit");
-
-<<<<<<< HEAD
->>>>>>> bb4290a (Setup GitHub Pages deployment)
-    try {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: name },
-          emailRedirectTo: window.location.origin,
-        },
-      });
-
-      if (signUpError) {
-        toast({ title: "Error", description: signUpError.message, variant: "destructive" });
-        return;
-      }
-
-      if (signUpData.user) {
-        const { error: rpcError } = await supabase.rpc('assign_admin_role', {
-          user_uuid: signUpData.user.id
-        });
-
-        if (!rpcError) {
-          toast({ 
-            title: "Admin Account Created!", 
-            description: "Please check your email to confirm your account, then sign in." 
-          });
-          setMode("login");
-          return;
-        }
-
-        const { error: insertError } = await supabase
-          .from('user_roles')
-          .insert({ user_id: signUpData.user.id, role: 'admin' });
-
-        if (!insertError) {
-          toast({ 
-            title: "Admin Account Created!", 
-            description: "Please check your email to confirm your account, then sign in." 
-          });
-          setMode("login");
-        } else {
-          toast({ 
-            title: "Account Created - Setup Required", 
-            description: "Your account was created. Run the database setup to enable admin features.", 
-            variant: "destructive" 
-          });
-          setMode("login");
-        }
-=======
-    if (mode === "admin") {
-      await handleAdminSignup();
-      return;
-    }
-
-    try {
-      const { error } = mode === "login"
-        ? await signIn(email, password)
-        : await signUp(email, password, name);
-
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else if (mode === "login") {
-        navigate("/");
-      } else {
-        toast({ title: "Account created", description: "Check your email to confirm your account." });
-        setMode("login");
->>>>>>> 9f673a3 (Initial commit with all products and admin features)
-      }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-<<<<<<< HEAD
-      setLoading("idle");
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,11 +117,6 @@ const Auth = () => {
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
-=======
-<<<<<<< HEAD
-      setLoading(false);
-=======
->>>>>>> bb4290a (Setup GitHub Pages deployment)
       setLoading("idle");
     }
   };
@@ -316,10 +182,6 @@ const Auth = () => {
       case "login": return "Welcome Back";
       case "signup": return "Join Us";
       case "admin": return "Admin Access";
-<<<<<<< HEAD
-=======
->>>>>>> 9f673a3 (Initial commit with all products and admin features)
->>>>>>> bb4290a (Setup GitHub Pages deployment)
     }
   };
 
@@ -340,7 +202,6 @@ const Auth = () => {
           </h1>
         </div>
 
-        {/* Mode Tabs */}
         <div className="flex gap-1 mb-6 bg-secondary rounded p-1">
           <button
             onClick={setLoginMode}
@@ -373,40 +234,9 @@ const Auth = () => {
             Admin
           </button>
         </div>
-<<<<<<< HEAD
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode !== "login" && (
-=======
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-<<<<<<< HEAD
-          {!isLogin && hasAdmin === false && (
-            <div className="bg-gold/10 border border-gold/30 rounded p-4 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield size={16} className="text-gold" />
-                <p className="text-xs font-medium text-gold">No Admin Found</p>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                This appears to be the first account. You can register as the system administrator.
-              </p>
-              <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={registerAsAdmin}
-                  onChange={(e) => setRegisterAsAdmin(e.target.checked)}
-                  className="rounded border-border"
-                />
-                Register as Administrator
-              </label>
-            </div>
-          )}
-
-          {!isLogin && (
-=======
-          {mode !== "login" && (
->>>>>>> 9f673a3 (Initial commit with all products and admin features)
->>>>>>> bb4290a (Setup GitHub Pages deployment)
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Full Name</label>
               <input
@@ -457,18 +287,6 @@ const Auth = () => {
             disabled={isSubmitLoading || isAdminLoading}
             className="w-full gradient-gold text-primary-foreground font-body text-xs tracking-[0.15em] uppercase h-12"
           >
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-            {loading
-              ? "Please wait..."
-              : isLogin
-              ? "Sign In"
-              : registerAsAdmin
-              ? "Create Admin Account"
-              : "Create Account"}
-=======
->>>>>>> bb4290a (Setup GitHub Pages deployment)
             {isSubmitLoading ? (
               <>
                 <Loader2 size={16} className="mr-2 animate-spin" />
@@ -477,16 +295,12 @@ const Auth = () => {
             ) : (
               mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Create Admin Account"
             )}
-<<<<<<< HEAD
-=======
->>>>>>> 9f673a3 (Initial commit with all products and admin features)
->>>>>>> bb4290a (Setup GitHub Pages deployment)
           </Button>
         </form>
 
         <div className="text-center mt-4">
           <Link to="/" className="text-xs text-muted-foreground hover:text-gold transition-colors">
-            ← Back to Store
+            Back to Store
           </Link>
         </div>
 

@@ -58,7 +58,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/echelon-commerce">
         <AuthProvider>
           <Routes>
             <Route path="/admin" element={<AdminLayout />}>

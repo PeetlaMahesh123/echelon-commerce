@@ -15,6 +15,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import Auth from "./pages/Auth";
 import OrderSuccess from "./pages/OrderSuccess";
+import Orders from "./pages/Orders";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
@@ -22,7 +23,17 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminCustomers from "./pages/admin/AdminCustomers";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+  },
+});
 
 const StorefrontLayout = () => (
   <CartProvider>
@@ -34,6 +45,7 @@ const StorefrontLayout = () => (
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/orders" element={<Orders />} />
       <Route path="/order-success" element={<OrderSuccess />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

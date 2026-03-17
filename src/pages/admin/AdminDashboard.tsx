@@ -12,6 +12,17 @@ const AdminDashboard = () => {
         supabase.from("orders").select("id, total, status, created_at"),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
       ]);
+      
+      if (!orders.data) {
+        return {
+          productCount: 0,
+          orderCount: 0,
+          customerCount: 0,
+          totalRevenue: 0,
+          pendingOrders: 0,
+          recentOrders: [],
+        };
+      }
 
       const orderData = orders.data || [];
       const totalRevenue = orderData
@@ -28,6 +39,8 @@ const AdminDashboard = () => {
         recentOrders: orderData.slice(0, 5),
       };
     },
+    staleTime: 60 * 1000, // 1 minute
+    refetchOnWindowFocus: false,
   });
 
   const formatPrice = (n: number) =>

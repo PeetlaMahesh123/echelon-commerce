@@ -5,6 +5,9 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+console.log('Supabase URL:', SUPABASE_URL);
+console.log('Supabase Key exists:', !!SUPABASE_PUBLISHABLE_KEY);
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
@@ -14,4 +17,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     autoRefreshToken: true,
   }
+});
+
+// Test connection
+supabase.auth.getSession().then(({ data, error }) => {
+  console.log('Supabase connection test:', error ? 'FAILED' : 'SUCCESS');
+  if (error) console.error('Connection error:', error);
 });

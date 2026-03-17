@@ -4,7 +4,7 @@ import { Heart, ShoppingBag } from "lucide-react";
 import type { ProductWithCategory } from "@/hooks/useProducts";
 import { resolveImage } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
-import { useState } from "react";
+import { useState, memo } from "react";
 
 interface ProductCardProps {
   product: ProductWithCategory;
@@ -14,9 +14,10 @@ interface ProductCardProps {
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price);
 
-const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
+const ProductCard = memo(({ product, index = 0 }: ProductCardProps) => {
   const { addItem } = useCart();
   const [wishlisted, setWishlisted] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const image = resolveImage(product);
   const categoryName = product.category?.name || "";
@@ -30,11 +31,18 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
     >
       <Link to={`/product/${product.id}`} className="block">
         <div className="relative aspect-[3/4] overflow-hidden rounded bg-charcoal">
+          {!imageLoaded && (
+            <div className="absolute inset-0 bg-secondary animate-pulse" />
+          )}
           <img
             src={image}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
             loading="lazy"
+            decoding="async"
+            onLoad={() => setImageLoaded(true)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -104,6 +112,6 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       </div>
     </motion.div>
   );
-};
+});
 
 export default ProductCard;

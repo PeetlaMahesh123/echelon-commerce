@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Admin Setup</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Quick Admin Setup</h1>
+    <p>Enter your email and password to get admin access:</p>
+    
+    <div class="form-group">
+        <label>Email:</label>
+        <input type="email" id="email" placeholder="your@email.com">
+    </div>
+    
+    <div class="form-group">
+        <label>Password:</label>
+        <input type="password" id="password" placeholder="Your password">
+    </div>
+    
+    <button onclick="makeAdmin()">Make Me Admin</button>
+    
+    <div id="result"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase;
+        const supabase = createClient('https://euhnreksknsggkvjvcvi.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1aG5yZWtza25zZ2drdmp2Y3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NDY3MzksImV4cCI6MjA4OTIyMjczOX0.eM5vYS-AlBKoYKRZhoJzW8PvylJ2hZpI5EbJn-68v3U');
+
+        async function makeAdmin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            if (!email || !password) {
+                result.innerHTML = '<p class="error">Please enter email and password</p>';
+                return;
+            }
+
+            try {
+                result.innerHTML = '<p>Processing...</p>';
+                
+                // Sign in
+                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+                
+                if (signInError) {
+                    result.innerHTML = `<p class="error">Login failed: ${signInError.message}</p>`;
+                    return;
+                }
+
+                // Try to add admin role
+                const { error: roleError } = await supabase
+                    .from('user_roles')
+                    .insert([{ user_id: signInData.user.id, role: 'admin' }]);
+
+                if (roleError) {
+                    result.innerHTML = `
+                        <p class="error">Database error: ${roleError.message}</p>
+                        <p>You need to run SQL in Supabase Dashboard:</p>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px;">
+INSERT INTO user_roles (user_id, role) 
+VALUES ('${signInData.user.id}', 'admin')
+ON CONFLICT (user_id, role) DO NOTHING;
+                        </pre>
+                        <p><a href="https://supabase.com/dashboard/project/euhnreksknsggkvjvcvi" target="_blank">Open Supabase Dashboard</a></p>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <p class="success">✅ Admin role added successfully!</p>
+                        <p>You can now access: <a href="http://localhost:8080/admin" target="_blank">http://localhost:8080/admin</a></p>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

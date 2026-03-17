@@ -28,6 +28,8 @@ const AdminOrders = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 60 * 1000, // 1 minute
+    refetchOnWindowFocus: false,
   });
 
   const updateStatus = useMutation({

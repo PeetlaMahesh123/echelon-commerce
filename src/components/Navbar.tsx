@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingBag, Search, Menu, X, Heart, User, LogOut, Shield } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, LogOut, Shield, Package } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
@@ -68,6 +68,11 @@ const Navbar = () => {
               <Shield size={18} />
             </Link>
           )}
+          {user && (
+            <Link to="/orders" className="text-muted-foreground hover:text-gold transition-colors" title="My Orders">
+              <Package size={18} />
+            </Link>
+          )}
           {user ? (
             <button
               onClick={() => signOut()}
@@ -103,6 +108,15 @@ const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
+              {user && (
+                <Link
+                  to="/orders"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm tracking-[0.15em] uppercase text-muted-foreground hover:text-gold transition-colors"
+                >
+                  My Orders
+                </Link>
+              )}
               {!user && (
                 <Link
                   to="/auth"

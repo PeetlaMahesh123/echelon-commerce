@@ -12,6 +12,9 @@ const AdminAnalytics = () => {
         .from("orders")
         .select("total, status, created_at");
       if (error) throw error;
+      if (!orders || orders.length === 0) {
+        return { monthly: [], byStatus: [], totalRevenue: 0, avgOrder: 0, totalOrders: 0 };
+      }
 
       // Revenue by month
       const monthlyMap: Record<string, number> = {};
@@ -38,6 +41,8 @@ const AdminAnalytics = () => {
 
       return { monthly, byStatus, totalRevenue, avgOrder, totalOrders: orders?.length || 0 };
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const formatPrice = (n: number) =>

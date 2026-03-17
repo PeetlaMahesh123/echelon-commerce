@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Insert</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+  <h1>Test Product Insert</h1>
+  <button onclick="testInsert()">Insert Test Product</button>
+  <div id="result"></div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://dqcxljpkrlbaolxbzmxe.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxY3hsanBrcmxiYW9seGJ6bXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTk2MjMsImV4cCI6MjA1MjUzNTYyM30.9Q6Tj8J3q8Z3zQ8J3q8Z3zQ8J3q8Z3zQ8J3q8Z3zQ8'
+    );
+
+    async function testInsert() {
+      const result = document.getElementById('result');
+      result.innerHTML = 'Inserting...';
+      
+      const { data, error } = await supabase
+        .from('products')
+        .insert({
+          name: 'Browser Test Product',
+          slug: 'browser-test-' + Date.now(),
+          description: 'Test from browser',
+          price: 99.99,
+          in_stock: true,
+          is_new: true,
+          is_featured: false
+        })
+        .select();
+      
+      if (error) {
+        result.innerHTML = '<p style="color:red">Error: ' + error.message + '</p>';
+      } else {
+        result.innerHTML = '<p style="color:green">Success! Product ID: ' + data[0].id + '</p>';
+      }
+    }
+  </script>
+</body>
+</html>

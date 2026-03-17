@@ -64,6 +64,10 @@ export function useProducts(category?: string) {
       }
       return results;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -80,6 +84,8 @@ export function useProduct(id: string) {
       return data as unknown as ProductWithCategory;
     },
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -94,5 +100,8 @@ export function useCategories() {
       if (error) throw error;
       return data;
     },
+    staleTime: 30 * 60 * 1000, // 30 minutes - categories rarely change
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }

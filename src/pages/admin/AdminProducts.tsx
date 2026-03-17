@@ -49,6 +49,9 @@ const AdminProducts = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: categories } = useQuery({
@@ -58,6 +61,8 @@ const AdminProducts = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false,
   });
 
   const saveMutation = useMutation({
@@ -75,24 +80,35 @@ const AdminProducts = () => {
         is_featured: formData.is_featured,
       };
 
-      if (editId) {
-        const { error } = await supabase.from("products").update(payload).eq("id", editId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("products").insert(payload);
-        if (error) throw error;
-      }
+      console.log("Saving product...", payload);
+      
+      // Add 30 second timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Request timeout - database not responding")), 30000)
+      );
+      
+      const dbPromise = editId
+        ? supabase.from("products").update(payload).eq("id", editId).select()
+        : supabase.from("products").insert(payload).select();
+      
+      const { data, error } = await Promise.race([dbPromise, timeoutPromise]) as any;
+      console.log("Result:", error ? "Error: " + error.message : "Success", data);
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      // Close dialog immediately for better UX
       setDialogOpen(false);
       setEditId(null);
       setForm(emptyForm);
+      // Then invalidate queries
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({ title: editId ? "Product updated" : "Product created" });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      console.error("Save product error:", err);
+      toast({ title: "Error", description: err.message || "Failed to save product", variant: "destructive" });
+      // Keep dialog open on error so user can retry
     },
   });
 
@@ -280,7 +296,7 @@ const AdminProducts = () => {
             </div>
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={saveMutation.isPending} className="flex-1 gradient-gold text-primary-foreground text-xs uppercase tracking-[0.1em]">
-                {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : editId ? "Update" : "Create"}
+                {saveMutation.isPending ? <><Loader2 size={14} className="animate-spin mr-2" /> Saving...</> : editId ? "Update" : "Create"}
               </Button>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="text-xs uppercase tracking-[0.1em]">
                 Cancel

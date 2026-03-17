@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ShoppingBag, Search, Menu, X, Heart, User, LogOut, Shield, Package } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +14,20 @@ const Navbar = () => {
   const { totalItems, setIsCartOpen } = useCart();
   const { user, signOut, isAdmin } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      // Force navigation to home after sign out
+      navigate("/");
+      // Hard refresh to clear any cached state
+      window.location.reload();
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
@@ -75,7 +88,7 @@ const Navbar = () => {
           )}
           {user ? (
             <button
-              onClick={() => signOut()}
+              onClick={handleSignOut}
               className="text-muted-foreground hover:text-gold transition-colors"
               title="Sign out"
             >
@@ -117,7 +130,17 @@ const Navbar = () => {
                   My Orders
                 </Link>
               )}
-              {!user && (
+              {user ? (
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleSignOut();
+                  }}
+                  className="text-sm tracking-[0.15em] uppercase text-muted-foreground hover:text-gold transition-colors text-left"
+                >
+                  Sign Out
+                </button>
+              ) : (
                 <Link
                   to="/auth"
                   onClick={() => setMobileOpen(false)}

@@ -127,21 +127,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      // Sign out from Supabase first
-      await supabase.auth.signOut({ scope: 'global' });
+      console.log('Starting sign out...');
       
-      // Clear local storage
-      localStorage.removeItem('sb-dqcxljpkrlbaolxbzmxe-auth-token');
-      
-      // Clear local state
+      // Clear local state first
       setUser(null);
       setSession(null);
       setIsAdmin(false);
       
-      console.log('Sign out successful');
+      // Clear local storage
+      localStorage.removeItem('sb-dqcxljpkrlbaolxbzmxe-auth-token');
+      localStorage.removeItem('supabase.auth.token');
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) {
+        console.error('Supabase signOut error:', error);
+      } else {
+        console.log('Sign out successful');
+      }
     } catch (error) {
       console.error('Sign out error:', error);
-      // Still clear local state even if Supabase call fails
+      // Ensure state is cleared even on error
       setUser(null);
       setSession(null);
       setIsAdmin(false);

@@ -1,11 +1,11 @@
-import { useState, memo, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, memo, useCallback, useEffect } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Shield, User, Settings } from "lucide-react";
+import { Loader2, Shield, User, Settings, CheckCircle } from "lucide-react";
 
 type AuthMode = "login" | "signup" | "admin";
 
@@ -15,10 +15,27 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
   const { signIn, signUp, refreshAdminStatus } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
+  // Check for email confirmation
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user?.email_confirmed_at) {
+        setEmailConfirmed(true);
+        toast({ 
+          title: "Email Verified!", 
+          description: "Your email has been confirmed. You can now sign in." 
+        });
+      }
+    };
+    checkSession();
+  }, [toast]);
+
   const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value), []);
   const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value), []);
   const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value), []);
@@ -42,7 +59,7 @@ const Auth = () => {
         password,
         options: {
           data: { full_name: name },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/auth`,
         },
       });
 
@@ -52,36 +69,18 @@ const Auth = () => {
       }
 
       if (signUpData.user) {
-        const { error: rpcError } = await supabase.rpc('assign_admin_role', {
-          user_uuid: signUpData.user.id
+        // Assign admin role
+        try {
+          await supabase.rpc('assign_admin_role', { user_uuid: signUpData.user.id });
+        } catch {
+          await supabase.from('user_roles').insert({ user_id: signUpData.user.id, role: 'admin' });
+        }
+        
+        toast({ 
+          title: "Admin Account Created!", 
+          description: "Please check your email and click the verification link to activate your account." 
         });
-
-        if (!rpcError) {
-          toast({ 
-            title: "Admin Account Created!", 
-            description: "Please check your email to confirm your account, then sign in." 
-          });
-          return true;
-        }
-
-        const { error: insertError } = await supabase
-          .from('user_roles')
-          .insert({ user_id: signUpData.user.id, role: 'admin' });
-
-        if (!insertError) {
-          toast({ 
-            title: "Admin Account Created!", 
-            description: "Please check your email to confirm your account, then sign in." 
-          });
-          return true;
-        } else {
-          toast({ 
-            title: "Account Created - Setup Required", 
-            description: "Your account was created. Run the database setup to enable admin features.", 
-            variant: "destructive" 
-          });
-          return true;
-        }
+        return true;
       }
       return false;
     } catch (error: any) {
@@ -106,32 +105,52 @@ const Auth = () => {
         return;
       }
 
-      let error = null;
-      
-      try {
-        const result = mode === "login"
-          ? await signIn(email, password)
-          : await signUp(email, password, name);
-        error = result.error;
-      } catch (err: any) {
-        error = err;
-      }
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name },
+            emailRedirectTo: `${window.location.origin}/auth`,
+          },
+        });
 
-      if (error) {
-        const errorMsg = error.message || "";
-        if (errorMsg.includes("Invalid login credentials") || errorMsg.includes("404")) {
-          toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
-        } else if (errorMsg.includes("User already registered")) {
+        if (error) {
+          if (error.message?.includes("User already registered")) {
+            toast({ title: "Account Exists", description: "An account with this email already exists. Please sign in.", variant: "destructive" });
+          } else {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+          }
+        } else if (data.user?.identities?.length === 0) {
           toast({ title: "Account Exists", description: "An account with this email already exists. Please sign in.", variant: "destructive" });
         } else {
-          toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
+          toast({ 
+            title: "Account Created!", 
+            description: "Please check your email and click the verification link to activate your account." 
+          });
+          setMode("login");
         }
-      } else if (mode === "login") {
-        toast({ title: "Success!", description: "You are now signed in." });
-        navigate("/");
       } else {
-        toast({ title: "Account created", description: "Check your email to confirm your account, then sign in." });
-        setMode("login");
+        // Login mode
+        const { error } = await signIn(email, password);
+
+        if (error) {
+          const errorMsg = error.message || "";
+          if (errorMsg.includes("Invalid login credentials") || errorMsg.includes("404")) {
+            toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
+          } else if (errorMsg.includes("Email not confirmed")) {
+            toast({ 
+              title: "Email Not Verified", 
+              description: "Please check your email and click the verification link before signing in.", 
+              variant: "destructive" 
+            });
+          } else {
+            toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
+          }
+        } else {
+          toast({ title: "Success!", description: "You are now signed in." });
+          navigate("/");
+        }
       }
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
@@ -155,6 +174,12 @@ const Auth = () => {
       if (signInError) {
         if (signInError.message?.includes("Invalid login credentials")) {
           toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
+        } else if (signInError.message?.includes("Email not confirmed")) {
+          toast({ 
+            title: "Email Not Verified", 
+            description: "Please check your email and click the verification link before signing in.", 
+            variant: "destructive" 
+          });
         } else {
           toast({ title: "Error", description: signInError.message, variant: "destructive" });
         }
@@ -162,34 +187,42 @@ const Auth = () => {
         return;
       }
 
-      const { error: rpcError } = await supabase.rpc('assign_admin_role', {
-        user_uuid: signInData.user.id
-      });
-
-      if (!rpcError) {
-        toast({ title: "Success!", description: "Admin role assigned. Redirecting to admin panel..." });
-        await refreshAdminStatus();
-        navigate("/admin");
-        return;
+      // Assign admin role
+      try {
+        await supabase.rpc('assign_admin_role', { user_uuid: signInData.user.id });
+      } catch {
+        await supabase.from('user_roles').upsert({ user_id: signInData.user.id, role: 'admin' }, { onConflict: 'user_id,role' });
       }
 
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .upsert({ user_id: signInData.user.id, role: 'admin' }, { onConflict: 'user_id,role' });
-
-      if (!insertError) {
-        toast({ title: "Success!", description: "Admin role assigned. Redirecting to admin panel..." });
-        await refreshAdminStatus();
-        navigate("/admin");
-      } else {
-        toast({ 
-          title: "Database Setup Required", 
-          description: "Please run the SQL setup in Supabase.", 
-          variant: "destructive" 
-        });
-      }
+      toast({ title: "Success!", description: "Admin role assigned. Redirecting to admin panel..." });
+      await refreshAdminStatus();
+      navigate("/admin");
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
+      resetLoading();
+    }
+  };
+
+  const resendConfirmation = async () => {
+    if (!email) {
+      toast({ title: "Error", description: "Please enter your email first", variant: "destructive" });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Email Sent!", description: "Check your inbox for the verification link." });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to resend email", variant: "destructive" });
     } finally {
       resetLoading();
     }
@@ -227,6 +260,13 @@ const Auth = () => {
             {getModeTitle()}
           </h1>
         </div>
+
+        {emailConfirmed && (
+          <div className="mb-6 bg-green-500/10 border border-green-500/30 rounded p-3 flex items-center gap-2">
+            <CheckCircle size={16} className="text-green-500" />
+            <p className="text-xs text-green-500">Email verified! You can now sign in.</p>
+          </div>
+        )}
 
         <div className="flex gap-1 mb-6 bg-secondary rounded p-1">
           <button
@@ -323,6 +363,18 @@ const Auth = () => {
             )}
           </Button>
         </form>
+
+        {mode === "login" && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={resendConfirmation}
+              disabled={isLoading}
+              className="text-xs text-muted-foreground hover:text-gold transition-colors"
+            >
+              Didn't receive verification email? Resend
+            </button>
+          </div>
+        )}
 
         <div className="text-center mt-4">
           <Link to="/" className="text-xs text-muted-foreground hover:text-gold transition-colors">

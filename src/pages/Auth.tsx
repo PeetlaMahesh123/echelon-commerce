@@ -98,6 +98,7 @@ const Auth = () => {
 
     if (mode === "admin") {
       await handleAdminSignup();
+      setLoading("idle");
       return;
     }
 
@@ -144,6 +145,7 @@ const Auth = () => {
         toast({ title: "Success!", description: "Admin role assigned. Redirecting to admin panel..." });
         await refreshAdminStatus();
         navigate("/admin");
+        setLoading("idle");
         return;
       }
 

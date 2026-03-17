@@ -8,14 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Shield, User, Settings } from "lucide-react";
 
 type AuthMode = "login" | "signup" | "admin";
-type LoadingState = "idle" | "submit" | "admin";
 
 const Auth = () => {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState<LoadingState>("idle");
+  const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, refreshAdminStatus } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -27,10 +26,11 @@ const Auth = () => {
   const setSignupMode = useCallback(() => setMode("signup"), []);
   const setAdminMode = useCallback(() => setMode("admin"), []);
 
-  const isSubmitLoading = loading === "submit";
-  const isAdminLoading = loading === "admin";
+  const resetLoading = useCallback(() => {
+    setIsLoading(false);
+  }, []);
 
-  const handleAdminSignup = async (): Promise<boolean> => {
+  const handleAdminSignup = async () => {
     if (!email || !password || !name) {
       toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
       return false;
@@ -52,7 +52,6 @@ const Auth = () => {
       }
 
       if (signUpData.user) {
-        // Try RPC first
         const { error: rpcError } = await supabase.rpc('assign_admin_role', {
           user_uuid: signUpData.user.id
         });
@@ -65,7 +64,6 @@ const Auth = () => {
           return true;
         }
 
-        // Fallback to direct insert
         const { error: insertError } = await supabase
           .from('user_roles')
           .insert({ user_id: signUpData.user.id, role: 'admin' });
@@ -87,14 +85,16 @@ const Auth = () => {
       }
       return false;
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to create account", variant: "destructive" });
+      toast({ title: "Error", description: error?.message || "Failed to create account", variant: "destructive" });
       return false;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading("submit");
+    if (isLoading) return;
+    
+    setIsLoading(true);
 
     try {
       if (mode === "admin") {
@@ -102,23 +102,24 @@ const Auth = () => {
         if (success) {
           setMode("login");
         }
-        setLoading("idle");
+        resetLoading();
         return;
       }
 
-      let result;
+      let error = null;
+      
       try {
-        result = mode === "login"
+        const result = mode === "login"
           ? await signIn(email, password)
           : await signUp(email, password, name);
+        error = result.error;
       } catch (err: any) {
-        // Handle thrown errors
-        result = { error: err };
+        error = err;
       }
 
-      if (result.error) {
-        const errorMsg = result.error.message || "";
-        if (errorMsg.includes("Invalid login credentials")) {
+      if (error) {
+        const errorMsg = error.message || "";
+        if (errorMsg.includes("Invalid login credentials") || errorMsg.includes("404")) {
           toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
         } else if (errorMsg.includes("User already registered")) {
           toast({ title: "Account Exists", description: "An account with this email already exists. Please sign in.", variant: "destructive" });
@@ -135,7 +136,7 @@ const Auth = () => {
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
-      setLoading("idle");
+      resetLoading();
     }
   };
 
@@ -145,7 +146,9 @@ const Auth = () => {
       return;
     }
 
-    setLoading("admin");
+    if (isLoading) return;
+    setIsLoading(true);
+
     try {
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       
@@ -155,6 +158,7 @@ const Auth = () => {
         } else {
           toast({ title: "Error", description: signInError.message, variant: "destructive" });
         }
+        resetLoading();
         return;
       }
 
@@ -185,9 +189,9 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Something went wrong. Please try again.", variant: "destructive" });
+      toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
-      setLoading("idle");
+      resetLoading();
     }
   };
 
@@ -227,7 +231,7 @@ const Auth = () => {
         <div className="flex gap-1 mb-6 bg-secondary rounded p-1">
           <button
             onClick={setLoginMode}
-            disabled={isSubmitLoading || isAdminLoading}
+            disabled={isLoading}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-colors ${
               mode === "login" ? "bg-gold text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -237,7 +241,7 @@ const Auth = () => {
           </button>
           <button
             onClick={setSignupMode}
-            disabled={isSubmitLoading || isAdminLoading}
+            disabled={isLoading}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-colors ${
               mode === "signup" ? "bg-gold text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -247,7 +251,7 @@ const Auth = () => {
           </button>
           <button
             onClick={setAdminMode}
-            disabled={isSubmitLoading || isAdminLoading}
+            disabled={isLoading}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-xs uppercase tracking-wider transition-colors ${
               mode === "admin" ? "bg-gold text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -266,7 +270,7 @@ const Auth = () => {
                 value={name}
                 onChange={handleNameChange}
                 required
-                disabled={isSubmitLoading}
+                disabled={isLoading}
                 className="w-full bg-secondary border border-border rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-gold transition-colors disabled:opacity-50"
               />
             </div>
@@ -278,7 +282,7 @@ const Auth = () => {
               value={email}
               onChange={handleEmailChange}
               required
-              disabled={isSubmitLoading}
+              disabled={isLoading}
               className="w-full bg-secondary border border-border rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-gold transition-colors disabled:opacity-50"
             />
           </div>
@@ -290,7 +294,7 @@ const Auth = () => {
               onChange={handlePasswordChange}
               required
               minLength={6}
-              disabled={isSubmitLoading}
+              disabled={isLoading}
               className="w-full bg-secondary border border-border rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-gold transition-colors disabled:opacity-50"
             />
           </div>
@@ -306,10 +310,10 @@ const Auth = () => {
 
           <Button
             type="submit"
-            disabled={isSubmitLoading || isAdminLoading}
+            disabled={isLoading}
             className="w-full gradient-gold text-primary-foreground font-body text-xs tracking-[0.15em] uppercase h-12"
           >
-            {isSubmitLoading ? (
+            {isLoading ? (
               <>
                 <Loader2 size={16} className="mr-2 animate-spin" />
                 Please wait...
@@ -334,12 +338,12 @@ const Auth = () => {
             </div>
             <Button
               onClick={makeMeAdmin}
-              disabled={isSubmitLoading || isAdminLoading}
+              disabled={isLoading}
               variant="outline"
               size="sm"
               className="text-xs border-gold text-gold hover:bg-gold hover:text-primary-foreground"
             >
-              {isAdminLoading ? (
+              {isLoading ? (
                 <>
                   <Loader2 size={12} className="mr-2 animate-spin" />
                   Setting up...

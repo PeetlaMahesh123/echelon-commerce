@@ -132,24 +132,29 @@ const Auth = () => {
         }
       } else {
         // Login mode
-        const { error } = await signIn(email, password);
+        try {
+          const { error } = await signIn(email, password);
 
-        if (error) {
-          const errorMsg = error.message || "";
-          if (errorMsg.includes("Invalid login credentials") || errorMsg.includes("404")) {
-            toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
-          } else if (errorMsg.includes("Email not confirmed")) {
-            toast({ 
-              title: "Email Not Verified", 
-              description: "Please check your email and click the verification link before signing in.", 
-              variant: "destructive" 
-            });
+          if (error) {
+            const errorMsg = error.message || "";
+            if (errorMsg.includes("Invalid login credentials") || errorMsg.includes("404")) {
+              toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
+            } else if (errorMsg.includes("Email not confirmed")) {
+              toast({ 
+                title: "Email Not Verified", 
+                description: "Please check your email and click the verification link before signing in.", 
+                variant: "destructive" 
+              });
+            } else {
+              toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
+            }
           } else {
-            toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
+            toast({ title: "Success!", description: "You are now signed in." });
+            navigate("/");
+            return;
           }
-        } else {
-          toast({ title: "Success!", description: "You are now signed in." });
-          navigate("/");
+        } catch (signInError: any) {
+          toast({ title: "Error", description: signInError?.message || "Sign in failed. Please try again.", variant: "destructive" });
         }
       }
     } catch (error: any) {

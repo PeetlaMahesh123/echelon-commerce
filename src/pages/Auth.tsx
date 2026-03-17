@@ -20,12 +20,24 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Check for email confirmation on mount
+  // Check for email confirmation on mount and clear any stuck sessions
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user?.email_confirmed_at) {
-        setEmailConfirmed(true);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        console.log('Auth page - Session check:', { hasSession: !!data.session, error });
+        
+        if (error) {
+          console.error('Session error, clearing:', error);
+          await supabase.auth.signOut();
+          localStorage.removeItem('sb-dqcxljpkrlbaolxbzmxe-auth-token');
+        }
+        
+        if (data.session?.user?.email_confirmed_at) {
+          setEmailConfirmed(true);
+        }
+      } catch (err) {
+        console.error('Session check error:', err);
       }
     };
     checkSession();

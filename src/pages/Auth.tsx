@@ -128,9 +128,30 @@ const Auth = () => {
           setMode("login");
         }
       } else {
-        // Login mode - use direct Supabase call for better error handling
+        // Login mode - use direct Supabase call with timeout
         console.log("Attempting login for:", email);
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        
+        // Add 10 second timeout to prevent hanging
+        const loginPromise = supabase.auth.signInWithPassword({ email, password });
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Login timeout - check browser extensions")), 10000)
+        );
+        
+        let result;
+        try {
+          result = await Promise.race([loginPromise, timeoutPromise]) as any;
+        } catch (timeoutError: any) {
+          console.error("Login timeout:", timeoutError);
+          toast({ 
+            title: "Connection Error", 
+            description: "Login is taking too long. Please disable browser extensions or try Incognito mode.", 
+            variant: "destructive" 
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data, error } = result;
         console.log("Login response:", { data, error });
 
         if (error) {

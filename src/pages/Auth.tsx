@@ -123,10 +123,13 @@ const Auth = () => {
         }
       } else {
         // Login mode - use direct Supabase call for better error handling
+        console.log("Attempting login for:", email);
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        console.log("Login response:", { data, error });
 
         if (error) {
           const errorMsg = error.message || "";
+          console.log("Login error:", errorMsg);
           if (errorMsg.includes("Invalid login credentials")) {
             toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
           } else if (errorMsg.includes("Email not confirmed")) {
@@ -139,14 +142,20 @@ const Auth = () => {
             toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
           }
         } else if (data.user) {
+          console.log("Login successful:", data.user.email);
           toast({ title: "Success!", description: "You are now signed in." });
           navigate("/");
           return;
+        } else {
+          console.log("No user returned from login");
+          toast({ title: "Error", description: "Login failed. Please try again.", variant: "destructive" });
         }
       }
     } catch (error: any) {
+      console.error("Login exception:", error);
       toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
+      console.log("Setting loading to false");
       setIsLoading(false);
     }
   };

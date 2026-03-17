@@ -106,17 +106,24 @@ const Auth = () => {
         return;
       }
 
-      const { error } = mode === "login"
-        ? await signIn(email, password)
-        : await signUp(email, password, name);
+      let result;
+      try {
+        result = mode === "login"
+          ? await signIn(email, password)
+          : await signUp(email, password, name);
+      } catch (err: any) {
+        // Handle thrown errors
+        result = { error: err };
+      }
 
-      if (error) {
-        if (error.message?.includes("Invalid login credentials")) {
+      if (result.error) {
+        const errorMsg = result.error.message || "";
+        if (errorMsg.includes("Invalid login credentials")) {
           toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
-        } else if (error.message?.includes("User already registered")) {
+        } else if (errorMsg.includes("User already registered")) {
           toast({ title: "Account Exists", description: "An account with this email already exists. Please sign in.", variant: "destructive" });
         } else {
-          toast({ title: "Error", description: error.message, variant: "destructive" });
+          toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
         }
       } else if (mode === "login") {
         toast({ title: "Success!", description: "You are now signed in." });
@@ -126,7 +133,7 @@ const Auth = () => {
         setMode("login");
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Something went wrong. Please try again.", variant: "destructive" });
+      toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
     } finally {
       setLoading("idle");
     }

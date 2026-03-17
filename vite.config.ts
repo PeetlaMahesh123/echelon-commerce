@@ -4,7 +4,7 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "/echelon-commerce/",
+  base: mode === 'production' ? '/echelon-commerce/' : '/',
   server: {
     host: "::",
     port: 8080,

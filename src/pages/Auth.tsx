@@ -102,6 +102,7 @@ const Auth = () => {
         if (success) {
           setMode("login");
         }
+        setLoading("idle");
         return;
       }
 

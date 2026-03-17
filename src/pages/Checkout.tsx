@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, Lock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+const SUPABASE_URL = "https://dqcxljpkrlbaolxbzmxe.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxY3hsanBrcmxiYW9seGJ6bXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NzY3MDYsImV4cCI6MjA4OTI1MjcwNn0.hR0nMHHbg7Xz_cyD7HXRPAggmpy_FN6eySedGkBsN68";
 
 const Checkout = () => {
   const { items, totalPrice } = useCart();
@@ -20,18 +22,28 @@ const Checkout = () => {
   const handleCheckout = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
           items: items.map((i) => ({
             name: i.product.name,
             price: i.product.price,
             quantity: i.quantity,
           })),
           origin_url: window.location.origin,
-        },
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       if (data?.url) {
         window.location.href = data.url;
       } else {

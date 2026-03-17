@@ -20,12 +20,24 @@ const Checkout = () => {
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price);
 
   const handleCheckout = async () => {
+    if (items.length === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add items to your cart before checkout.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
+    console.log("Starting checkout with items:", items);
+    
     try {
       // Add timeout to prevent hanging
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+      console.log("Calling checkout function...");
       const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout`, {
         method: "POST",
         headers: {
@@ -44,13 +56,23 @@ const Checkout = () => {
       });
 
       clearTimeout(timeoutId);
+      console.log("Checkout response status:", response.status);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorText = await response.text();
+        console.error("Checkout error response:", errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log("Checkout response data:", data);
+      
       if (data?.url) {
         window.location.href = data.url;
         return;
@@ -58,10 +80,11 @@ const Checkout = () => {
         throw new Error("No checkout URL returned");
       }
     } catch (err: any) {
+      console.error("Checkout error:", err);
       if (err.name === 'AbortError') {
         toast({
           title: "Checkout Timeout",
-          description: "The checkout service is taking too long. Please try again.",
+          description: "The checkout service is taking too long. Please try again or disable browser extensions.",
           variant: "destructive",
         });
       } else {

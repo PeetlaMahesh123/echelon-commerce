@@ -95,20 +95,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [checkAdminStatus]);
 
   const signUp = async (email: string, password: string, name?: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    return { error: error as Error | null };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (error) {
+        return { error: error as Error };
+      }
+      return { error: null };
+    } catch (err: any) {
+      return { error: err as Error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        return { error: error as Error };
+      }
+      return { error: null };
+    } catch (err: any) {
+      return { error: err as Error };
+    }
   };
 
   const signOut = async () => {

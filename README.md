@@ -3,6 +3,9 @@
 A modern e-commerce website built with React, Vite, TypeScript, and Tailwind CSS.
 
 ---
+Live Demo link: https://peetlamahesh123.github.io/echelon-commerce/
+
+---
 ## Live Demo Images:
 <p align="center">
   <img src="https://github.com/user-attachments/assets/dd26dc86-7af6-4482-bdef-70536129ee30" width="80%" />

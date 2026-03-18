@@ -11,16 +11,59 @@ console.log('Supabase Key exists:', !!SUPABASE_PUBLISHABLE_KEY);
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Custom storage that falls back to memory if localStorage is blocked
+const customStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // Ignore storage errors
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore storage errors
+    }
+  },
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: customStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true,
+    flowType: 'implicit',
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js/2.x',
+    },
+  },
 });
 
-// Test connection
-supabase.auth.getSession().then(({ data, error }) => {
-  console.log('Supabase connection test:', error ? 'FAILED' : 'SUCCESS');
-  if (error) console.error('Connection error:', error);
-});
+// Test connection with timeout
+const testConnection = async () => {
+  try {
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection test timeout')), 5000)
+    );
+    const sessionPromise = supabase.auth.getSession();
+    const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+    console.log('Supabase connection test:', result.error ? 'FAILED' : 'SUCCESS');
+    if (result.error) console.error('Connection error:', result.error);
+  } catch (err) {
+    console.error('Supabase connection test failed:', err);
+  }
+};
+
+testConnection();

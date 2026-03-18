@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Shield, User, Settings, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, Shield, User, Settings, AlertCircle } from "lucide-react";
 
 type AuthMode = "login" | "signup" | "admin";
 
@@ -24,14 +24,9 @@ const Auth = () => {
   useEffect(() => {
     const clearStuckSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          console.log('Found existing session, clearing...');
-          await supabase.auth.signOut();
-          localStorage.removeItem('sb-dqcxljpkrlbaolxbzmxe-auth-token');
-        }
-      } catch (err) {
-        console.log('No session to clear');
+        await supabase.auth.signOut();
+      } catch {
+        // Ignore errors
       }
     };
     clearStuckSession();
@@ -128,28 +123,32 @@ const Auth = () => {
           setMode("login");
         }
       } else {
-        // Login mode
-        const { error } = await signIn(email, password);
+        // Login mode - use direct Supabase call
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
-          const errorMsg = error.message || "";
-          if (errorMsg.includes("Invalid login credentials")) {
+          if (error.message?.includes("Invalid login credentials")) {
             setError("Invalid email or password. Please try again.");
-          } else if (errorMsg.includes("Email not confirmed")) {
+          } else if (error.message?.includes("Email not confirmed")) {
             setError("Please verify your email before signing in. Check your inbox.");
-          } else if (errorMsg.includes("timeout")) {
-            setError("Connection timeout. Please disable browser extensions and try again.");
           } else {
-            setError(errorMsg || "Sign in failed. Please try again.");
+            setError(error.message || "Sign in failed. Please try again.");
           }
-        } else {
+        } else if (data.user) {
           toast({ title: "Success!", description: "You are now signed in." });
           navigate("/");
           return;
+        } else {
+          setError("Sign in failed. Please try again.");
         }
       }
     } catch (error: any) {
-      setError(error?.message || "Something went wrong. Please try again.");
+      console.error("Auth error:", error);
+      if (error.message?.includes("timeout") || error.message?.includes("Network")) {
+        setError("Connection failed. This may be caused by browser security settings or VPN. Try using Incognito mode or a different browser.");
+      } else {
+        setError(error?.message || "Something went wrong. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -262,8 +261,8 @@ const Auth = () => {
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded p-3 flex items-center gap-2">
-            <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded p-3 flex items-start gap-2">
+            <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-red-400">{error}</p>
           </div>
         )}

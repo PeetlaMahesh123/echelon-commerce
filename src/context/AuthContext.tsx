@@ -15,16 +15,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function with timeout
-const withTimeout = <T,>(promise: PromiseLike<T>, timeoutMs: number, errorMessage: string): Promise<T> => {
-  return Promise.race([
-    Promise.resolve(promise),
-    new Promise<T>((_, reject) => 
-      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
-    )
-  ]);
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -33,16 +23,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAdminStatus = useCallback(async (userId: string) => {
     try {
-      const result = await withTimeout(
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userId)
-          .eq("role", "admin")
-          .maybeSingle(),
-        5000,
-        "Admin check timeout"
-      );
+      const result = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
       
       const { data, error } = result as any;
       
@@ -69,11 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await withTimeout(
-          supabase.auth.getSession(),
-          5000,
-          "Session check timeout"
-        );
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (mounted) {
           setSession(session);
@@ -116,18 +98,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, name?: string) => {
     try {
-      const { data, error } = await withTimeout(
-        supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: name },
-            emailRedirectTo: window.location.origin,
-          },
-        }),
-        10000,
-        "Sign up timeout - check browser extensions"
-      );
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: window.location.origin,
+        },
+      });
       if (error) {
         return { error: error as Error };
       }
@@ -139,11 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithPassword({ email, password }),
-        10000,
-        "Sign in timeout - check browser extensions"
-      );
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         return { error: error as Error };
       }
@@ -158,9 +132,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Starting sign out...');
       
       // Clear all storage first
-      localStorage.removeItem('sb-dqcxljpkrlbaolxbzmxe-auth-token');
-      localStorage.removeItem('supabase.auth.token');
-      sessionStorage.clear();
+      try {
+        localStorage.removeItem('sb-dqcxljpkrlbaolxbzmxe-auth-token');
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
+      } catch {
+        // Ignore storage errors
+      }
       
       // Clear state
       setUser(null);
@@ -168,11 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAdmin(false);
       
       // Sign out from Supabase
-      await withTimeout(
-        supabase.auth.signOut({ scope: 'global' }),
-        5000,
-        "Sign out timeout"
-      );
+      await supabase.auth.signOut({ scope: 'global' });
       
       console.log('Sign out successful');
     } catch (error) {

@@ -2,6 +2,11 @@
 
 A modern e-commerce website built with React, Vite, TypeScript, and Tailwind CSS.
 
+---
+## Live Demo Images:
+<img width="1923" height="755" alt="image" src="https://github.com/user-attachments/assets/d8fa9948-fb90-4da6-bf88-55148d36c74a" />
+
+
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript

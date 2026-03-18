@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Shield, User, Settings, CheckCircle } from "lucide-react";
+import { Loader2, Shield, User, Settings, CheckCircle, AlertCircle } from "lucide-react";
 
 type AuthMode = "login" | "signup" | "admin";
 
@@ -15,44 +15,38 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signIn, signUp, refreshAdminStatus } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Check for email confirmation on mount and clear any stuck sessions
+  // Clear any stuck sessions on mount
   useEffect(() => {
-    const checkSession = async () => {
+    const clearStuckSession = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        console.log('Auth page - Session check:', { hasSession: !!data.session, error });
-        
-        if (error) {
-          console.error('Session error, clearing:', error);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('Found existing session, clearing...');
           await supabase.auth.signOut();
           localStorage.removeItem('sb-dqcxljpkrlbaolxbzmxe-auth-token');
         }
-        
-        if (data.session?.user?.email_confirmed_at) {
-          setEmailConfirmed(true);
-        }
       } catch (err) {
-        console.error('Session check error:', err);
+        console.log('No session to clear');
       }
     };
-    checkSession();
+    clearStuckSession();
   }, []);
 
   const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value), []);
   const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value), []);
   const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value), []);
-  const setLoginMode = useCallback(() => setMode("login"), []);
-  const setSignupMode = useCallback(() => setMode("signup"), []);
-  const setAdminMode = useCallback(() => setMode("admin"), []);
+  const setLoginMode = useCallback(() => { setMode("login"); setError(null); }, []);
+  const setSignupMode = useCallback(() => { setMode("signup"); setError(null); }, []);
+  const setAdminMode = useCallback(() => { setMode("admin"); setError(null); }, []);
 
   const handleAdminSignup = async () => {
     if (!email || !password || !name) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      setError("Please fill in all fields");
       return false;
     }
 
@@ -67,12 +61,11 @@ const Auth = () => {
       });
 
       if (signUpError) {
-        toast({ title: "Error", description: signUpError.message, variant: "destructive" });
+        setError(signUpError.message);
         return false;
       }
 
       if (signUpData.user) {
-        // Try to assign admin role
         try {
           await supabase.rpc('assign_admin_role', { user_uuid: signUpData.user.id });
         } catch {
@@ -81,28 +74,23 @@ const Auth = () => {
         
         toast({ 
           title: "Admin Account Created!", 
-          description: "Please check your email and click the verification link to activate your account." 
+          description: "Please check your email and click the verification link." 
         });
         return true;
       }
       return false;
     } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "Failed to create account", variant: "destructive" });
+      setError(error?.message || "Failed to create account");
       return false;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted, mode:", mode, "isLoading:", isLoading);
+    if (isLoading) return;
     
-    if (isLoading) {
-      console.log("Already loading, returning");
-      return;
-    }
-    
-    console.log("Setting loading to true");
     setIsLoading(true);
+    setError(null);
 
     try {
       if (mode === "admin") {
@@ -126,122 +114,86 @@ const Auth = () => {
 
         if (error) {
           if (error.message?.includes("User already registered")) {
-            toast({ title: "Account Exists", description: "An account with this email already exists. Please sign in.", variant: "destructive" });
+            setError("An account with this email already exists. Please sign in.");
           } else {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            setError(error.message);
           }
         } else if (data.user?.identities?.length === 0) {
-          toast({ title: "Account Exists", description: "An account with this email already exists. Please sign in.", variant: "destructive" });
+          setError("An account with this email already exists. Please sign in.");
         } else {
           toast({ 
             title: "Account Created!", 
-            description: "Please check your email and click the verification link to activate your account." 
+            description: "Please check your email and click the verification link." 
           });
           setMode("login");
         }
       } else {
-        // Login mode - use direct Supabase call with timeout
-        console.log("Attempting login for:", email);
-        
-        // Add 10 second timeout to prevent hanging
-        const loginPromise = supabase.auth.signInWithPassword({ email, password });
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Login timeout - check browser extensions")), 10000)
-        );
-        
-        let result;
-        try {
-          result = await Promise.race([loginPromise, timeoutPromise]) as any;
-        } catch (timeoutError: any) {
-          console.error("Login timeout:", timeoutError);
-          toast({ 
-            title: "Connection Error", 
-            description: "Login is taking too long. Please disable browser extensions or try Incognito mode.", 
-            variant: "destructive" 
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        const { data, error } = result;
-        console.log("Login response:", { data, error });
+        // Login mode
+        const { error } = await signIn(email, password);
 
         if (error) {
           const errorMsg = error.message || "";
-          console.log("Login error:", errorMsg);
           if (errorMsg.includes("Invalid login credentials")) {
-            toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
+            setError("Invalid email or password. Please try again.");
           } else if (errorMsg.includes("Email not confirmed")) {
-            toast({ 
-              title: "Email Not Verified", 
-              description: "Please check your email and click the verification link before signing in.", 
-              variant: "destructive" 
-            });
+            setError("Please verify your email before signing in. Check your inbox.");
+          } else if (errorMsg.includes("timeout")) {
+            setError("Connection timeout. Please disable browser extensions and try again.");
           } else {
-            toast({ title: "Error", description: errorMsg || "Authentication failed. Please try again.", variant: "destructive" });
+            setError(errorMsg || "Sign in failed. Please try again.");
           }
-        } else if (data.user) {
-          console.log("Login successful:", data.user.email);
+        } else {
           toast({ title: "Success!", description: "You are now signed in." });
           navigate("/");
           return;
-        } else {
-          console.log("No user returned from login");
-          toast({ title: "Error", description: "Login failed. Please try again.", variant: "destructive" });
         }
       }
     } catch (error: any) {
-      console.error("Login exception:", error);
-      toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
+      setError(error?.message || "Something went wrong. Please try again.");
     } finally {
-      console.log("Setting loading to false");
       setIsLoading(false);
     }
   };
 
   const makeMeAdmin = async () => {
     if (!email || !password) {
-      toast({ title: "Error", description: "Please enter your email and password first", variant: "destructive" });
+      setError("Please enter your email and password first");
       return;
     }
 
     if (isLoading) return;
     setIsLoading(true);
+    setError(null);
 
     try {
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       
       if (signInError) {
         if (signInError.message?.includes("Invalid login credentials")) {
-          toast({ title: "Account Not Found", description: "No account exists with this email. Please sign up first.", variant: "destructive" });
+          setError("Invalid email or password.");
         } else if (signInError.message?.includes("Email not confirmed")) {
-          toast({ 
-            title: "Email Not Verified", 
-            description: "Please check your email and click the verification link before signing in.", 
-            variant: "destructive" 
-          });
+          setError("Please verify your email first.");
         } else {
-          toast({ title: "Error", description: signInError.message, variant: "destructive" });
+          setError(signInError.message);
         }
         setIsLoading(false);
         return;
       }
 
       if (signInData.user) {
-        // Assign admin role
         try {
           await supabase.rpc('assign_admin_role', { user_uuid: signInData.user.id });
         } catch {
           await supabase.from('user_roles').upsert({ user_id: signInData.user.id, role: 'admin' }, { onConflict: 'user_id,role' });
         }
 
-        toast({ title: "Success!", description: "Admin role assigned. Redirecting to admin panel..." });
+        toast({ title: "Success!", description: "Admin role assigned. Redirecting..." });
         await refreshAdminStatus();
         navigate("/admin");
         return;
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "Something went wrong. Please try again.", variant: "destructive" });
+      setError(error?.message || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -249,11 +201,12 @@ const Auth = () => {
 
   const resendConfirmation = async () => {
     if (!email) {
-      toast({ title: "Error", description: "Please enter your email first", variant: "destructive" });
+      setError("Please enter your email first");
       return;
     }
     
     setIsLoading(true);
+    setError(null);
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -261,12 +214,12 @@ const Auth = () => {
       });
       
       if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+        setError(error.message);
       } else {
         toast({ title: "Email Sent!", description: "Check your inbox for the verification link." });
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "Failed to resend email", variant: "destructive" });
+      setError(error?.message || "Failed to resend email");
     } finally {
       setIsLoading(false);
     }
@@ -289,11 +242,11 @@ const Auth = () => {
   };
 
   return (
-    <main className="pt-24 pb-16 min-h-screen flex items-center justify-center">
+    <main className="pt-24 pb-16 min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary">
       <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-sm px-4"
       >
         <div className="text-center mb-8">
@@ -308,10 +261,10 @@ const Auth = () => {
           </h1>
         </div>
 
-        {emailConfirmed && (
-          <div className="mb-6 bg-green-500/10 border border-green-500/30 rounded p-3 flex items-center gap-2">
-            <CheckCircle size={16} className="text-green-500" />
-            <p className="text-xs text-green-500">Email verified! You can now sign in.</p>
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded p-3 flex items-center gap-2">
+            <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+            <p className="text-xs text-red-400">{error}</p>
           </div>
         )}
 
@@ -358,7 +311,7 @@ const Auth = () => {
                 onChange={handleNameChange}
                 required
                 disabled={isLoading}
-                className="w-full bg-secondary border border-border rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-gold transition-colors disabled:opacity-50"
+                className="w-full bg-secondary border border-royal-purple/30 rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-royal-pink focus:ring-1 focus:ring-royal-pink transition-all disabled:opacity-50"
               />
             </div>
           )}
@@ -370,7 +323,7 @@ const Auth = () => {
               onChange={handleEmailChange}
               required
               disabled={isLoading}
-              className="w-full bg-secondary border border-border rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-gold transition-colors disabled:opacity-50"
+              className="w-full bg-secondary border border-royal-purple/30 rounded px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-royal-pink focus:ring-1 focus:ring-royal-pink transition-all disabled:opacity-50"
             />
           </div>
           <div>
@@ -424,7 +377,7 @@ const Auth = () => {
         )}
 
         <div className="text-center mt-4">
-          <Link to="/" className="text-xs text-muted-foreground hover:text-gold transition-colors">
+          <Link to="/" className="text-xs text-muted-foreground hover:text-royal-pink transition-colors">
             Back to Store
           </Link>
         </div>
@@ -432,7 +385,7 @@ const Auth = () => {
         {mode === "login" && (
           <div className="text-center mt-6 pt-6 border-t border-border">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <Settings size={14} className="text-gold" />
+              <Settings size={14} className="text-royal-gold" />
               <p className="text-xs text-muted-foreground">Already have an account?</p>
             </div>
             <Button
@@ -440,7 +393,7 @@ const Auth = () => {
               disabled={isLoading}
               variant="outline"
               size="sm"
-              className="text-xs border-gold text-gold hover:bg-gold hover:text-primary-foreground"
+              className="text-xs border-royal-purple text-royal-pink hover:bg-royal-purple hover:text-white"
             >
               {isLoading ? (
                 <>

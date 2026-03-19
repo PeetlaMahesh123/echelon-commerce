@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Quick Fix</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .step h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .step p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .code {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .alert-success {
+            background: #c6f6d5;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+        }
+        .alert-info {
+            background: #bee3f8;
+            border: 1px solid #90cdf4;
+            color: #2a4365;
+        }
+        .alert-warning {
+            background: #feebc8;
+            border: 1px solid #fbd38d;
+            color: #744210;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .copy-btn {
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            float: right;
+            margin-top: -5px;
+        }
+        .copy-btn:hover {
+            background: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Email Verification Fix</h1>
+        <p class="subtitle">Already registered but can't login? Follow these steps:</p>
+
+        <div class="alert alert-info">
+            <strong>⚡ Quick Solution:</strong> Run the SQL script below in Supabase Dashboard to instantly verify your email.
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Open Supabase Dashboard</h3>
+            <p>Go to: <a href="https://dqcxljpkrlbaolxbzmxe.supabase.co" target="_blank">Supabase Dashboard</a></p>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Go to SQL Editor</h3>
+            <p>Click on "SQL Editor" in the left sidebar</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Copy & Run This SQL</h3>
+            <button class="copy-btn" onclick="copySQL()">Copy</button>
+            <div class="code" id="sqlCode">-- Verify the most recent unverified user
+UPDATE auth.users
+SET email_confirmed_at = NOW()
+WHERE email_confirmed_at IS NULL
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- Add admin role to that user
+INSERT INTO user_roles (user_id, role)
+SELECT id, 'admin'
+FROM auth.users
+WHERE email_confirmed_at IS NOT NULL
+ORDER BY created_at DESC
+LIMIT 1
+ON CONFLICT (user_id, role) DO NOTHING;
+
+-- Show result
+SELECT 
+    '✅ Verified!' as status,
+    email,
+    email_confirmed_at
+FROM auth.users
+WHERE email_confirmed_at IS NOT NULL
+ORDER BY created_at DESC
+LIMIT 1;</div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Click "Run"</h3>
+            <p>Paste the SQL and click the "Run" button or press Ctrl+Enter</p>
+        </div>
+
+        <div class="alert alert-success">
+            <strong>✅ Done!</strong> You should see a success message. Now go back to your app and login!
+        </div>
+
+        <button class="btn" onclick="openApp()">Open App & Login</button>
+        <button class="btn btn-secondary" onclick="openSupabase()">Open Supabase Dashboard</button>
+
+        <div class="alert alert-warning" style="margin-top: 30px;">
+            <strong>💡 Alternative:</strong> If this doesn't work, you can also:<br>
+            • Use the "Resend" button on the login page<br>
+            • Create a new account with a different email<br>
+            • Check your spam folder for the verification email
+        </div>
+    </div>
+
+    <script>
+        function copySQL() {
+            const sql = document.getElementById('sqlCode').innerText;
+            navigator.clipboard.writeText(sql).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                }, 2000);
+            });
+        }
+
+        function openApp() {
+            window.open('http://localhost:8081/echelon-commerce/auth', '_blank');
+        }
+
+        function openSupabase() {
+            window.open('https://dqcxljpkrlbaolxbzmxe.supabase.co', '_blank');
+        }
+    </script>
+</body>
+</html>

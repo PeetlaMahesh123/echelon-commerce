@@ -1,119 +1,238 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>Add Product - Admin</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; background: #1a1a1a; color: #fff; }
-    h1 { color: #d4af37; }
-    label { display: block; margin-top: 15px; color: #ccc; }
-    input, textarea, select { width: 100%; padding: 10px; margin-top: 5px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px; }
-    button { background: #d4af37; color: #000; padding: 15px 30px; border: none; cursor: pointer; margin-top: 20px; font-weight: bold; }
-    button:hover { background: #e5c048; }
-    .checkbox { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-    .checkbox input { width: auto; }
-    #result { margin-top: 20px; padding: 15px; border-radius: 4px; }
-    .success { background: #2d5a27; }
-    .error { background: #5a2727; }
-  </style>
-</head>
-<body>
-  <h1>Add New Product</h1>
-  <form id="productForm">
-    <label>Name *</label>
-    <input type="text" id="name" required>
-    
-    <label>Slug (auto-generated if empty)</label>
-    <input type="text" id="slug">
-    
-    <label>Description</label>
-    <textarea id="description" rows="3"></textarea>
-    
-    <label>Price *</label>
-    <input type="number" id="price" step="0.01" required>
-    
-    <label>Original Price</label>
-    <input type="number" id="original_price" step="0.01">
-    
-    <label>Category</label>
-    <select id="category_id">
-      <option value="">Select Category</option>
-      <option value="11111111-1111-1111-1111-111111111111">Bags</option>
-      <option value="22222222-2222-2222-2222-222222222222">Watches</option>
-      <option value="33333333-3333-3333-3333-333333333333">Eyewear</option>
-      <option value="44444444-4444-4444-4444-444444444444">Fragrance</option>
-      <option value="55555555-5555-5555-5555-555555555555">Footwear</option>
-      <option value="66666666-6666-6666-6666-666666666666">Jewelry</option>
-      <option value="77777777-7777-7777-7777-777777777777">Accessories</option>
-    </select>
-    
-    <label>Image URL</label>
-    <input type="text" id="image_url" placeholder="https://images.unsplash.com/...">
-    
-    <div class="checkbox">
-      <input type="checkbox" id="in_stock" checked>
-      <label for="in_stock" style="margin-top: 0;">In Stock</label>
-    </div>
-    
-    <div class="checkbox">
-      <input type="checkbox" id="is_new">
-      <label for="is_new" style="margin-top: 0;">New Product</label>
-    </div>
-    
-    <div class="checkbox">
-      <input type="checkbox" id="is_featured">
-      <label for="is_featured" style="margin-top: 0;">Featured</label>
-    </div>
-    
-    <button type="submit">Add Product</button>
-  </form>
-  
-  <div id="result"></div>
+    <head>
+        <title>Add Product - Admin</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 600px;
+                margin: 50px auto;
+                padding: 20px;
+                background: #1a1a1a;
+                color: #fff;
+            }
+            h1 {
+                color: #d4af37;
+            }
+            label {
+                display: block;
+                margin-top: 15px;
+                color: #ccc;
+            }
+            input,
+            textarea,
+            select {
+                width: 100%;
+                padding: 10px;
+                margin-top: 5px;
+                background: #333;
+                border: 1px solid #555;
+                color: #fff;
+                border-radius: 4px;
+            }
+            button {
+                background: #d4af37;
+                color: #000;
+                padding: 15px 30px;
+                border: none;
+                cursor: pointer;
+                margin-top: 20px;
+                font-weight: bold;
+            }
+            button:hover {
+                background: #e5c048;
+            }
+            .checkbox {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            .checkbox input {
+                width: auto;
+            }
+            #result {
+                margin-top: 20px;
+                padding: 15px;
+                border-radius: 4px;
+            }
+            .success {
+                background: #2d5a27;
+            }
+            .error {
+                background: #5a2727;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Add New Product</h1>
+        <form id="productForm">
+            <label>Name *</label>
+            <input type="text" id="name" required />
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script>
-    const supabaseClient = window.supabase.createClient(
-      'https://dqcxljpkrlbaolxbzmxe.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxY3hsanBrcmxiYW9seGJ6bXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTk2MjMsImV4cCI6MjA1MjUzNTYyM30.9Q6Tj8J3q8Z3zQ8J3q8Z3zQ8J3q8Z3zQ8J3q8Z3zQ8'
-    );
+            <label>Slug (auto-generated if empty)</label>
+            <input type="text" id="slug" />
 
-    document.getElementById('productForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const result = document.getElementById('result');
-      result.innerHTML = 'Adding product...';
-      result.className = '';
-      
-      const name = document.getElementById('name').value;
-      const slug = document.getElementById('slug').value || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      
-      const payload = {
-        name: name,
-        slug: slug,
-        description: document.getElementById('description').value || null,
-        price: parseFloat(document.getElementById('price').value),
-        original_price: document.getElementById('original_price').value ? parseFloat(document.getElementById('original_price').value) : null,
-        category_id: document.getElementById('category_id').value || null,
-        image_url: document.getElementById('image_url').value || null,
-        in_stock: document.getElementById('in_stock').checked,
-        is_new: document.getElementById('is_new').checked,
-        is_featured: document.getElementById('is_featured').checked,
-      };
-      
-      try {
-        const { data, error } = await supabaseClient.from('products').insert(payload).select();
-        
-        if (error) {
-          result.innerHTML = '<strong>Error:</strong> ' + error.message;
-          result.className = 'error';
-        } else {
-          result.innerHTML = '<strong>Success!</strong> Product added: ' + data[0].name;
-          result.className = 'success';
-          document.getElementById('productForm').reset();
-        }
-      } catch (err) {
-        result.innerHTML = '<strong>Error:</strong> ' + err.message;
-        result.className = 'error';
-      }
-    });
-  </script>
-</body>
+            <label>Description</label>
+            <textarea id="description" rows="3"></textarea>
+
+            <label>Price *</label>
+            <input type="number" id="price" step="0.01" required />
+
+            <label>Original Price</label>
+            <input type="number" id="original_price" step="0.01" />
+
+            <label>Category</label>
+            <select id="category_id">
+                <option value="">Select Category</option>
+                <option value="11111111-1111-1111-1111-111111111111">
+                    Bags
+                </option>
+                <option value="22222222-2222-2222-2222-222222222222">
+                    Watches
+                </option>
+                <option value="33333333-3333-3333-3333-333333333333">
+                    Eyewear
+                </option>
+                <option value="44444444-4444-4444-4444-444444444444">
+                    Fragrance
+                </option>
+                <option value="55555555-5555-5555-5555-555555555555">
+                    Footwear
+                </option>
+                <option value="66666666-6666-6666-6666-666666666666">
+                    Jewelry
+                </option>
+                <option value="77777777-7777-7777-7777-777777777777">
+                    Accessories
+                </option>
+            </select>
+
+            <label>Image URL</label>
+            <input
+                type="text"
+                id="image_url"
+                placeholder="https://images.unsplash.com/..."
+            />
+
+            <div class="checkbox">
+                <input type="checkbox" id="in_stock" checked />
+                <label for="in_stock" style="margin-top: 0">In Stock</label>
+            </div>
+
+            <div class="checkbox">
+                <input type="checkbox" id="is_new" />
+                <label for="is_new" style="margin-top: 0">New Product</label>
+            </div>
+
+            <div class="checkbox">
+                <input type="checkbox" id="is_featured" />
+                <label for="is_featured" style="margin-top: 0">Featured</label>
+            </div>
+
+            <button type="submit">Add Product</button>
+        </form>
+
+        <div id="result"></div>
+
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+        <script>
+            const supabaseClient = window.supabase.createClient(
+                "https://dqcxljpkrlbaolxbzmxe.supabase.co",
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxY3hsanBrcmxiYW9seGJ6bXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NTk2MjMsImV4cCI6MjA1MjUzNTYyM30.9Q6Tj8J3q8Z3zQ8J3q8Z3zQ8J3q8Z3zQ8J3q8Z3zQ8",
+            );
+
+            document
+                .getElementById("productForm")
+                .addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const result = document.getElementById("result");
+                    result.innerHTML = "Adding product...";
+                    result.className = "";
+
+                    const name = document.getElementById("name").value;
+                    const slug =
+                        document.getElementById("slug").value ||
+                        name
+                            .toLowerCase()
+                            .replace(/\s+/g, "-")
+                            .replace(/[^a-z0-9-]/g, "");
+                    const categoryId =
+                        document.getElementById("category_id").value;
+
+                    if (!categoryId) {
+                        result.innerHTML =
+                            "<strong>Error:</strong> Please select a category.";
+                        result.className = "error";
+                        console.error(
+                            "Validation Error: Category not selected for product.",
+                        );
+                        return;
+                    }
+
+                    const payload = {
+                        name: name,
+                        slug: slug,
+                        description:
+                            document.getElementById("description").value ||
+                            null,
+                        price: parseFloat(
+                            document.getElementById("price").value,
+                        ),
+                        original_price: document.getElementById(
+                            "original_price",
+                        ).value
+                            ? parseFloat(
+                                  document.getElementById("original_price")
+                                      .value,
+                              )
+                            : null,
+                        category_id: categoryId, // Use the validated categoryId
+                        image_url:
+                            document.getElementById("image_url").value || null,
+                        in_stock: document.getElementById("in_stock").checked,
+                        is_new: document.getElementById("is_new").checked,
+                        is_featured:
+                            document.getElementById("is_featured").checked,
+                    };
+
+                    console.log(
+                        "Attempting to add product with payload:",
+                        payload,
+                    );
+                    try {
+                        const { data, error } = await supabaseClient
+                            .from("products")
+                            .insert(payload)
+                            .select();
+
+                        if (error) {
+                            console.error(
+                                "Supabase insert error:",
+                                error.message,
+                                error,
+                            );
+                            result.innerHTML =
+                                "<strong>Error:</strong> " + error.message;
+                            result.className = "error";
+                        } else {
+                            console.log("Product added successfully:", data);
+                            result.innerHTML =
+                                "<strong>Success!</strong> Product added: " +
+                                data[0].name;
+                            result.className = "success";
+                            document.getElementById("productForm").reset();
+                        }
+                    } catch (err) {
+                        console.error(
+                            "An unexpected error occurred during product creation:",
+                            err,
+                        );
+                        result.innerHTML =
+                            "<strong>Error:</strong> " + err.message;
+                        result.className = "error";
+                    }
+                });
+        </script>
+    </body>
 </html>

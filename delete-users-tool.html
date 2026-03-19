@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete All Users Except Admin</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #c0392b;
+            margin-bottom: 10px;
+            font-size: 26px;
+        }
+        .warning {
+            background: #fee;
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #e74c3c;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .step h3 {
+            color: #e74c3c;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .step p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .code {
+            background: #2d3748;
+            color: #fc8181;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+        .btn-safe {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .alert-info {
+            background: #bee3f8;
+            border: 1px solid #90cdf4;
+            color: #2a4365;
+        }
+        .alert-success {
+            background: #c6f6d5;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+        }
+        .checkbox-container {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .checkbox-container label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #c53030;
+        }
+        .checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        a {
+            color: #e74c3c;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .copy-btn {
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            float: right;
+            margin-top: -5px;
+        }
+        .copy-btn:hover {
+            background: #2d3748;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Delete All Non-Admin Users</h1>
+        <p class="subtitle">Remove all registered users except admin accounts</p>
+
+        <div class="warning">
+            ⚠️ WARNING: This will permanently delete all non-admin users! This action CANNOT be undone!
+        </div>
+
+        <div class="alert alert-info">
+            <strong>💡 What this does:</strong><br>
+            ✅ Keeps all admin users safe<br>
+            ❌ Deletes all regular/unverified users<br>
+            🔄 Allows you to register fresh test accounts
+        </div>
+
+        <div class="checkbox-container">
+            <label>
+                <input type="checkbox" id="confirmCheckbox">
+                I understand this will DELETE all non-admin users permanently
+            </label>
+        </div>
+
+        <button class="btn" id="showSQLBtn" disabled onclick="showSQL()">
+            Show Me the SQL Script
+        </button>
+
+        <div id="sqlSection" class="hidden">
+            <div class="step">
+                <h3>Step 1: Open Supabase Dashboard</h3>
+                <p>Go to: <a href="https://dqcxljpkrlbaolxbzmxe.supabase.co" target="_blank">Supabase Dashboard</a></p>
+            </div>
+
+            <div class="step">
+                <h3>Step 2: Go to SQL Editor</h3>
+                <p>Click on "SQL Editor" in the left sidebar</p>
+            </div>
+
+            <div class="step">
+                <h3>Step 3: Copy & Run This SQL</h3>
+                <button class="copy-btn" onclick="copySQL()">Copy</button>
+                <div class="code" id="sqlCode">-- First, see which users will be deleted
+SELECT 
+    id,
+    email,
+    email_confirmed_at,
+    created_at,
+    '❌ WILL BE DELETED' as status
+FROM auth.users
+WHERE id NOT IN (
+    SELECT user_id FROM user_roles WHERE role = 'admin'
+)
+ORDER BY created_at DESC;
+
+-- Delete all non-admin users
+DELETE FROM auth.users
+WHERE id NOT IN (
+    SELECT user_id FROM user_roles WHERE role = 'admin'
+);
+
+-- Verify only admins remain
+SELECT 
+    id,
+    email,
+    email_confirmed_at,
+    '✅ REMAINING (Admin)' as status
+FROM auth.users
+ORDER BY created_at DESC;</div>
+            </div>
+
+            <div class="step">
+                <h3>Step 4: Click "Run"</h3>
+                <p>Paste the SQL and click the "Run" button or press Ctrl+Enter</p>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✅ Done!</strong> All non-admin users have been deleted. Now you can register fresh accounts!
+            </div>
+
+            <button class="btn btn-safe" onclick="openApp()">Register New User</button>
+            <button class="btn btn-secondary" onclick="openSupabase()">Open Supabase Dashboard</button>
+        </div>
+
+        <div class="alert alert-info" style="margin-top: 30px;">
+            <strong>💡 After deletion:</strong><br>
+            • Go to /auth page<br>
+            • Register with a NEW email address<br>
+            • Verify your email<br>
+            • Login and test the application!
+        </div>
+    </div>
+
+    <script>
+        const confirmCheckbox = document.getElementById('confirmCheckbox');
+        const showSQLBtn = document.getElementById('showSQLBtn');
+        const sqlSection = document.getElementById('sqlSection');
+
+        confirmCheckbox.addEventListener('change', () => {
+            showSQLBtn.disabled = !confirmCheckbox.checked;
+        });
+
+        function showSQL() {
+            sqlSection.classList.remove('hidden');
+            showSQLBtn.textContent = '✓ SQL Script Shown';
+            showSQLBtn.disabled = true;
+        }
+
+        function copySQL() {
+            const sql = document.getElementById('sqlCode').innerText;
+            navigator.clipboard.writeText(sql).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                }, 2000);
+            });
+        }
+
+        function openApp() {
+            window.open('http://localhost:8081/echelon-commerce/auth', '_blank');
+        }
+
+        function openSupabase() {
+            window.open('https://dqcxljpkrlbaolxbzmxe.supabase.co', '_blank');
+        }
+    </script>
+</body>
+</html>

@@ -10,14 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 const SUPABASE_URL = "https://dqcxljpkrlbaolxbzmxe.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxY3hsanBrcmxiYW9seGJ6bXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NzY3MDYsImV4cCI6MjA4OTI1MjcwNn0.hR0nMHHbg7Xz_cyD7HXRPAggmpy_FN6eySedGkBsN68";
 
+import { formatPrice } from "@/lib/currency";
+
 const Checkout = () => {
   const { items, totalPrice } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price);
 
   const handleCheckout = async () => {
     if (items.length === 0) {

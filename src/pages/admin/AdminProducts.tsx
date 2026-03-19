@@ -32,6 +32,8 @@ const emptyForm: ProductForm = {
   is_featured: false,
 };
 
+import { formatPrice } from "@/lib/currency";
+
 const AdminProducts = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -82,18 +84,36 @@ const AdminProducts = () => {
 
       console.log("Saving product...", payload);
       
-      // Add 30 second timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Request timeout - database not responding")), 30000)
-      );
+      // Check authentication first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be logged in to add products. Please sign in as admin.");
+      }
       
-      const dbPromise = editId
-        ? supabase.from("products").update(payload).eq("id", editId).select()
-        : supabase.from("products").insert(payload).select();
+      // Check if user has admin role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
       
-      const { data, error } = await Promise.race([dbPromise, timeoutPromise]) as any;
-      console.log("Result:", error ? "Error: " + error.message : "Success", data);
-      if (error) throw error;
+      if (!roleData) {
+        throw new Error("Admin access required. Please contact the administrator.");
+      }
+      
+      try {
+        const { data, error } = editId
+          ? await supabase.from("products").update(payload).eq("id", editId).select()
+          : await supabase.from("products").insert(payload).select();
+        
+        console.log("Result:", error ? "Error: " + error.message : "Success", data);
+        if (error) throw error;
+        return data;
+      } catch (error: any) {
+        console.error("Database error:", error);
+        throw new Error(error.message || "Failed to save product. Please try again.");
+      }
     },
     onSuccess: () => {
       // Close dialog immediately for better UX
@@ -149,9 +169,6 @@ const AdminProducts = () => {
     setForm(emptyForm);
     setDialogOpen(true);
   };
-
-  const formatPrice = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
   const inputClass = "w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:border-gold transition-colors";
 

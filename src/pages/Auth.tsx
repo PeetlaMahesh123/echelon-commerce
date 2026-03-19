@@ -127,10 +127,17 @@ const Auth = () => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
+          console.error('Login error:', error);
+          
+          // Check for specific error types
           if (error.message?.includes("Invalid login credentials")) {
             setError("Invalid email or password. Please try again.");
-          } else if (error.message?.includes("Email not confirmed")) {
-            setError("Please verify your email before signing in. Check your inbox.");
+          } else if (error.message?.includes("Email not confirmed") || 
+                     error.message?.includes("email") && error.message?.includes("confirm")) {
+            setError("Please verify your email before signing in. Check your inbox or click 'Resend' below.");
+          } else if (error.status === 400) {
+            // Generic bad request - likely invalid credentials
+            setError("Invalid email or password. Please check your credentials and try again.");
           } else {
             setError(error.message || "Sign in failed. Please try again.");
           }

@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Package, ShoppingCart, Users, DollarSign, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { formatPrice } from "@/lib/currency";
+
 const AdminDashboard = () => {
   const { data: stats } = useQuery({
     queryKey: ["admin-stats"],
@@ -42,9 +44,6 @@ const AdminDashboard = () => {
     staleTime: 60 * 1000, // 1 minute
     refetchOnWindowFocus: false,
   });
-
-  const formatPrice = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
   const statCards = [
     { label: "Total Revenue", value: formatPrice(stats?.totalRevenue || 0), icon: DollarSign, color: "text-gold" },

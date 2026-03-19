@@ -14,6 +14,8 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-900/30 text-red-400",
 };
 
+import { formatPrice } from "@/lib/currency";
+
 const AdminOrders = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -49,9 +51,6 @@ const AdminOrders = () => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
-
-  const formatPrice = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
   return (
     <div>

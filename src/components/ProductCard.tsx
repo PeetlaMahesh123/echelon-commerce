@@ -5,14 +5,12 @@ import type { ProductWithCategory } from "@/hooks/useProducts";
 import { resolveImage } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
 import { useState, memo } from "react";
+import { formatPrice } from "@/lib/currency";
 
 interface ProductCardProps {
   product: ProductWithCategory;
   index?: number;
 }
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price);
 
 const ProductCard = memo(({ product, index = 0 }: ProductCardProps) => {
   const { addItem } = useCart();

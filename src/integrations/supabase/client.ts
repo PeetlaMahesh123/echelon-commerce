@@ -11,38 +11,46 @@ console.log('Supabase Key exists:', !!SUPABASE_PUBLISHABLE_KEY);
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Custom storage that falls back to memory if localStorage is blocked
-const customStorage = {
-  getItem: (key: string): string | null => {
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  setItem: (key: string, value: string): void => {
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      // Ignore storage errors
-    }
-  },
-  removeItem: (key: string): void => {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      // Ignore storage errors
-    }
-  },
+// Custom storage that handles both localStorage and memory
+const createBrowserStorage = () => {
+  const hasLocalStorage = typeof window !== 'undefined' && window.localStorage;
+  
+  return {
+    getItem: (key: string): string | null => {
+      if (!hasLocalStorage) return null;
+      try {
+        return localStorage.getItem(key);
+      } catch (error) {
+        console.warn('localStorage getItem error:', error);
+        return null;
+      }
+    },
+    setItem: (key: string, value: string): void => {
+      if (!hasLocalStorage) return;
+      try {
+        localStorage.setItem(key, value);
+      } catch (error) {
+        console.warn('localStorage setItem error:', error);
+      }
+    },
+    removeItem: (key: string): void => {
+      if (!hasLocalStorage) return;
+      try {
+        localStorage.removeItem(key);
+      } catch (error) {
+        console.warn('localStorage removeItem error:', error);
+      }
+    },
+  };
 };
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: customStorage,
+    storage: createBrowserStorage(),
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'implicit',
+    flowType: 'pkce', // More secure and works better across different browsers
   },
   global: {
     headers: {
@@ -51,19 +59,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Test connection with timeout
+// Test connection (non-blocking)
 const testConnection = async () => {
   try {
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection test timeout')), 5000)
-    );
-    const sessionPromise = supabase.auth.getSession();
-    const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-    console.log('Supabase connection test:', result.error ? 'FAILED' : 'SUCCESS');
-    if (result.error) console.error('Connection error:', result.error);
+    const { error } = await supabase.auth.getSession();
+    console.log('Supabase connection:', error ? 'FAILED' : 'SUCCESS');
+    if (error) console.error('Connection error:', error);
   } catch (err) {
     console.error('Supabase connection test failed:', err);
   }
 };
 
+// Don't await - let it run in background
 testConnection();
